@@ -1,5 +1,7 @@
 package com.myprc.utils;
 
+import com.myprc.provider.ServiceProvider;
+import com.myprc.provider.ServiceProviderImpl;
 import com.myrpc.common.entity.RpcRequest;
 import com.myrpc.common.entity.RpcResponse;
 import com.myrpc.common.info.ResponseCode;
@@ -11,8 +13,14 @@ import java.lang.reflect.Method;
 
 public class RequestHandler {
     private static final Logger logger = LoggerFactory.getLogger(RequestHandler.class);
-    public Object handle(RpcRequest rpcRequest, Object service){
+    private static final ServiceProvider serviceProvider;
+
+    static {
+        serviceProvider = new ServiceProviderImpl();
+    }
+    public Object handle(RpcRequest rpcRequest){
         Object result = null;
+        Object service = serviceProvider.getServiceProvider(rpcRequest.getInterfaceName());
         try{
             result = invokeTargetMethod(rpcRequest, service);
             logger.info("服务:{} 成功调用方法:{}", rpcRequest.getInterfaceName(), rpcRequest.getMethodName());
@@ -27,7 +35,7 @@ public class RequestHandler {
         try {
             method = service.getClass().getMethod(rpcRequest.getMethodName(), rpcRequest.getParamTypes());
         } catch (NoSuchMethodException e) {
-            return RpcResponse.fail(ResponseCode.METHOD_NOT_FOUND);
+            return RpcResponse.fail(ResponseCode.METHOD_NOT_FOUND,rpcRequest.getRequestId());
         }
         return method.invoke(service, rpcRequest.getParameters());
 
