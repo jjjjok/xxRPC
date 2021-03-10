@@ -1,7 +1,9 @@
 package com.myprc.socket;
 
-import com.myprc.registry.NacosServiceRegistry;
-import com.myprc.registry.ServiceRegistry;
+import com.myprc.loadbalancer.LoadBalancer;
+import com.myprc.loadbalancer.RandomLoadBalancer;
+import com.myprc.registry.NacosServiceDiscovery;
+import com.myprc.registry.ServiceDiscovery;
 import com.myprc.serializer.CommonSerializer;
 import com.myprc.utils.ObjectReader;
 import com.myprc.utils.ObjectWriter;
@@ -24,12 +26,25 @@ import java.net.Socket;
 public class SocketClient implements RpcClient {
     private static final Logger logger = LoggerFactory.getLogger(SocketClient.class);
 
-    private final ServiceRegistry serviceRegistry;
+    private final ServiceDiscovery serviceDiscovery;
 
     private CommonSerializer serializer;
 
     public SocketClient() {
-        this.serviceRegistry = new NacosServiceRegistry();
+        this(DEFAULT_SERIALIZER, new RandomLoadBalancer());
+    }
+
+    public SocketClient(LoadBalancer loadBalancer) {
+        this(DEFAULT_SERIALIZER, loadBalancer);
+    }
+
+    public SocketClient(Integer serializer) {
+        this(serializer, new RandomLoadBalancer());
+    }
+
+    public SocketClient(Integer serializer, LoadBalancer loadBalancer) {
+        this.serviceDiscovery = new NacosServiceDiscovery(loadBalancer);
+        this.serializer = CommonSerializer.getByCode(serializer);
     }
 
     @Override
@@ -38,7 +53,7 @@ public class SocketClient implements RpcClient {
             logger.error("未设置序列化器");
             throw new RpcException(RpcError.SERIALIZER_NOT_FOUND);
         }
-        InetSocketAddress inetSocketAddress = serviceRegistry.lookupService(rpcRequest.getInterfaceName());
+        InetSocketAddress inetSocketAddress = serviceDiscovery.lookupService(rpcRequest.getInterfaceName());
         try (Socket socket = new Socket()) {
             socket.connect(inetSocketAddress);
             OutputStream outputStream = socket.getOutputStream();
@@ -55,16 +70,11 @@ public class SocketClient implements RpcClient {
                 throw new RpcException(RpcError.SERVICE_INVOCATION_FAILURE, " service:" + rpcRequest.getInterfaceName());
             }
             RpcMessageChecker.check(rpcRequest, rpcResponse);
-            return rpcResponse.getData();
+            return rpcResponse;
         } catch (IOException e) {
             logger.error("调用时有错误发生：", e);
             throw new RpcException("服务调用失败: ", e);
         }
-    }
-
-    @Override
-    public void setSerializer(CommonSerializer serializer) {
-        this.serializer = serializer;
     }
 
 }
