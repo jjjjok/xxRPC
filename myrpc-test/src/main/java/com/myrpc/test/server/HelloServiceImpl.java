@@ -1,8 +1,13 @@
-package com.myrpc.api;
+package com.myrpc.test.server;
 
+
+import com.myprc.annotation.Service;
+import com.myrpc.api.HelloObject;
+import com.myrpc.api.HelloService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@Service
 public class HelloServiceImpl implements HelloService {
     private static final Logger logger = LoggerFactory.getLogger(HelloServiceImpl.class);
 

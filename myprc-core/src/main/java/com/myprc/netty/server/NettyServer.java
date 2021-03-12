@@ -3,14 +3,10 @@ package com.myprc.netty.server;
 import com.myprc.codec.CommonDecoder;
 import com.myprc.codec.CommonEncoder;
 import com.myprc.hook.ShutdownHook;
-import com.myprc.provider.ServiceProvider;
 import com.myprc.provider.ServiceProviderImpl;
 import com.myprc.registry.NacosServiceRegistry;
-import com.myprc.registry.ServiceRegistry;
 import com.myprc.serializer.CommonSerializer;
-import com.myprc.utils.RpcServer;
-import com.myrpc.common.exception.RpcException;
-import com.myrpc.common.info.RpcError;
+import com.myprc.utils.CommonRpcServer;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -19,21 +15,10 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
 import io.netty.handler.timeout.IdleStateHandler;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import java.net.InetSocketAddress;
 import java.util.concurrent.TimeUnit;
 
-public class NettyServer implements RpcServer {
-    private static final Logger logger = LoggerFactory.getLogger(NettyServer.class);
-
-    private final String host;
-    private final int port;
-
-    private final ServiceRegistry serviceRegistry;
-    private final ServiceProvider serviceProvider;
-
+public class NettyServer extends CommonRpcServer {
     private final CommonSerializer serializer;
 
     public NettyServer(String host, int port) {
@@ -46,18 +31,9 @@ public class NettyServer implements RpcServer {
         serviceRegistry = new NacosServiceRegistry();
         serviceProvider = new ServiceProviderImpl();
         this.serializer = CommonSerializer.getByCode(serializer);
+        scanServices();
     }
 
-    @Override
-    public <T> void publishService(T service, Class<T> serviceClass) {
-        if(serializer == null) {
-            logger.error("未设置序列化器");
-            throw new RpcException(RpcError.SERIALIZER_NOT_FOUND);
-        }
-        serviceProvider.addServiceProvider(service, serviceClass);
-        serviceRegistry.register(serviceClass.getCanonicalName(), new InetSocketAddress(host, port));
-        start();
-    }
 
     @Override
     public void start() {
