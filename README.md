@@ -23,7 +23,7 @@
  ## 启动
  **运行前需启动nacos服务**
  
- 创建服务端实例，可指定序列化器
+ 创建服务端实例，可指定序列化器，当然是可以创建多个服务端的，服务发现时就会使用负载均衡算法
  ```java
 package com.myrpc.test.server;
 
@@ -35,7 +35,9 @@ import com.myprc.serializer.CommonSerializer;
 public class NettyServerTest {
     public static void main(String[] args) {
         NettyServer server = new NettyServer("127.0.0.1", 9999, CommonSerializer.PROTOBUF_SERIALIZER);
+        NettyServer server1 = new NettyServer("127.0.0.1", 9990, CommonSerializer.PROTOBUF_SERIALIZER);
         server.start();
+        server1.start();
     }
 }
  ```
